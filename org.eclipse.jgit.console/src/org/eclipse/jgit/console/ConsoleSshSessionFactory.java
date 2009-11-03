@@ -1,5 +1,4 @@
 /*
- * Copyright (C) 2009, Constantine Plotnikov <constantine.plotnikov@gmail.com>
  * Copyright (C) 2009, Google Inc.
  * Copyright (C) 2008, Robin Rosenberg <robin.rosenberg@dewire.com>
  * Copyright (C) 2008, Shawn O. Pearce <spearce@spearce.org>
@@ -44,9 +43,17 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.eclipse.jgit.transport;
+package org.eclipse.jgit.console;
+
+import java.io.Console;
+
+import org.eclipse.jgit.transport.OpenSshConfig;
+import org.eclipse.jgit.transport.SshConfigSessionFactory;
+import org.eclipse.jgit.transport.SshSessionFactory;
 
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UIKeyboardInteractive;
+import com.jcraft.jsch.UserInfo;
 
 /**
  * Loads known hosts and private keys from <code>$HOME/.ssh</code>.
@@ -55,11 +62,84 @@ import com.jcraft.jsch.Session;
  * compatibility necessary to match OpenSSH, a popular implementation of SSH
  * used by C Git.
  * <p>
- * If user interactivity is required by SSH (e.g. to obtain a password), the
- * connection will immediately fail.
+ * If user interactivity is required by SSH (e.g. to obtain a password) the
+ * system console is used to display a prompt to the end-user.
  */
-class DefaultSshSessionFactory extends SshConfigSessionFactory {
+public class ConsoleSshSessionFactory extends SshConfigSessionFactory {
+	/** Install this session factory implementation into the JVM. */
+	public static void install() {
+		final ConsoleSshSessionFactory c = new ConsoleSshSessionFactory();
+		if (c.cons == null)
+			throw new NoClassDefFoundError("No System.console available");
+		SshSessionFactory.setInstance(c);
+	}
+
+	private final Console cons = System.console();
+
+	@Override
 	protected void configure(final OpenSshConfig.Host hc, final Session session) {
-		// No additional configuration required.
+		if (!hc.isBatchMode())
+			session.setUserInfo(new ConsoleUserInfo());
+	}
+
+	private class ConsoleUserInfo implements UserInfo, UIKeyboardInteractive {
+		private String passwd;
+
+		private String passphrase;
+
+		public void showMessage(final String msg) {
+			cons.printf("%s\n", msg);
+			cons.flush();
+		}
+
+		public boolean promptYesNo(final String msg) {
+			String r = cons.readLine("%s [y/n]? ", msg);
+			return "y".equalsIgnoreCase(r);
+		}
+
+		public boolean promptPassword(final String msg) {
+			passwd = null;
+			char[] p = cons.readPassword("%s: ", msg);
+			if (p != null) {
+				passwd = new String(p);
+				return true;
+			}
+			return false;
+		}
+
+		public boolean promptPassphrase(final String msg) {
+			passphrase = null;
+			char[] p = cons.readPassword("%s: ", msg);
+			if (p != null) {
+				passphrase = new String(p);
+				return true;
+			}
+			return false;
+		}
+
+		public String getPassword() {
+			return passwd;
+		}
+
+		public String getPassphrase() {
+			return passphrase;
+		}
+
+		public String[] promptKeyboardInteractive(final String destination,
+				final String name, final String instruction,
+				final String[] prompt, final boolean[] echo) {
+			cons.printf("%s: %s\n", destination, name);
+			cons.printf("%s\n", instruction);
+			final String[] response = new String[prompt.length];
+			for (int i = 0; i < prompt.length; i++) {
+				if (echo[i]) {
+					response[i] = cons.readLine("%s: ", prompt[i]);
+				} else {
+					final char[] p = cons.readPassword("%s: ", prompt[i]);
+					response[i] = p != null ? new String(p) : "";
+				}
+			}
+			return response;
+		}
 	}
 }

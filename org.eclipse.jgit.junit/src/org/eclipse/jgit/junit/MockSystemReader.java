@@ -1,8 +1,6 @@
 /*
- * Copyright (C) 2009, Constantine Plotnikov <constantine.plotnikov@gmail.com>
  * Copyright (C) 2009, Google Inc.
- * Copyright (C) 2008, Robin Rosenberg <robin.rosenberg@dewire.com>
- * Copyright (C) 2008, Shawn O. Pearce <spearce@spearce.org>
+ * Copyright (C) 2009, Yann Simon <yann.simon.fr@gmail.com>
  * and other copyright owners as documented in the project's IP log.
  *
  * This program and the accompanying materials are made available
@@ -44,22 +42,69 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.eclipse.jgit.transport;
+package org.eclipse.jgit.junit;
 
-import com.jcraft.jsch.Session;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
 
-/**
- * Loads known hosts and private keys from <code>$HOME/.ssh</code>.
- * <p>
- * This is the default implementation used by JGit and provides most of the
- * compatibility necessary to match OpenSSH, a popular implementation of SSH
- * used by C Git.
- * <p>
- * If user interactivity is required by SSH (e.g. to obtain a password), the
- * connection will immediately fail.
- */
-class DefaultSshSessionFactory extends SshConfigSessionFactory {
-	protected void configure(final OpenSshConfig.Host hc, final Session session) {
-		// No additional configuration required.
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.FileBasedConfig;
+import org.eclipse.jgit.util.SystemReader;
+
+public class MockSystemReader extends SystemReader {
+	final Map<String, String> values = new HashMap<String, String>();
+
+	FileBasedConfig userGitConfig;
+
+	public MockSystemReader() {
+		init(Constants.OS_USER_NAME_KEY);
+		init(Constants.GIT_AUTHOR_NAME_KEY);
+		init(Constants.GIT_AUTHOR_EMAIL_KEY);
+		init(Constants.GIT_COMMITTER_NAME_KEY);
+		init(Constants.GIT_COMMITTER_EMAIL_KEY);
+		userGitConfig = new FileBasedConfig(null);
+	}
+
+	private void init(final String n) {
+		setProperty(n, n);
+	}
+
+	public void clearProperties() {
+		values.clear();
+	}
+
+	public void setProperty(String key, String value) {
+		values.put(key, value);
+	}
+
+	@Override
+	public String getenv(String variable) {
+		return values.get(variable);
+	}
+
+	@Override
+	public String getProperty(String key) {
+		return values.get(key);
+	}
+
+	@Override
+	public FileBasedConfig openUserConfig() {
+		return userGitConfig;
+	}
+
+	@Override
+	public String getHostname() {
+		return "fake.host.example.com";
+	}
+
+	@Override
+	public long getCurrentTime() {
+		return 1250379778668L; // Sat Aug 15 20:12:58 GMT-03:30 2009
+	}
+
+	@Override
+	public int getTimezone(long when) {
+		return TimeZone.getTimeZone("GMT-03:30").getOffset(when) / (60 * 1000);
 	}
 }
