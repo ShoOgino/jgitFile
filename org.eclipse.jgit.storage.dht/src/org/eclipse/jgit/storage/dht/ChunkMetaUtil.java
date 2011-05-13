@@ -43,54 +43,69 @@
 
 package org.eclipse.jgit.storage.dht;
 
-import org.eclipse.jgit.generated.storage.dht.proto.GitStore;
+import java.text.MessageFormat;
+import java.util.List;
 
-/**
- * Summary information about a chunk owned by a repository.
- */
-public class ChunkInfo {
-	/** Mixed objects are stored in the chunk (instead of single type). */
-	public static final int OBJ_MIXED = 0;
+import org.eclipse.jgit.generated.storage.dht.proto.GitStore.ChunkMeta;
+import org.eclipse.jgit.generated.storage.dht.proto.GitStore.ChunkMeta.BaseChunk;
 
-	private final ChunkKey chunkKey;
+class ChunkMetaUtil {
+	static BaseChunk getBaseChunk(ChunkKey chunkKey, ChunkMeta meta,
+			long position) throws DhtException {
+		// Chunks are sorted by ascending relative_start order.
+		// Thus for a pack sequence of: A B C, we have:
+		//
+		// -- C relative_start = 10,000
+		// -- B relative_start = 20,000
+		// -- A relative_start = 30,000
+		//
+		// Indicating that chunk C starts 10,000 bytes before us,
+		// chunk B starts 20,000 bytes before us (and 10,000 before C),
+		// chunk A starts 30,000 bytes before us (and 10,000 before B),
+		//
+		// If position falls within:
+		//
+		// -- C (10k), then position is between 0..10,000
+		// -- B (20k), then position is between 10,000 .. 20,000
+		// -- A (30k), then position is between 20,000 .. 30,000
 
-	private final GitStore.ChunkInfo data;
+		List<BaseChunk> baseChunks = meta.getBaseChunkList();
+		int high = baseChunks.size();
+		int low = 0;
+		while (low < high) {
+			final int mid = (low + high) >>> 1;
+			final BaseChunk base = baseChunks.get(mid);
 
-	/**
-	 * Wrap a ChunkInfo message.
-	 *
-	 * @param key
-	 *            associated chunk key.
-	 * @param data
-	 *            data.
-	 */
-	public ChunkInfo(ChunkKey key, GitStore.ChunkInfo data) {
-		this.chunkKey = key;
-		this.data = data;
+			if (position > base.getRelativeStart()) {
+				low = mid + 1;
+
+			} else if (mid == 0 || position == base.getRelativeStart()) {
+				return base;
+
+			} else if (baseChunks.get(mid - 1).getRelativeStart() < position) {
+				return base;
+
+			} else {
+				high = mid;
+			}
+		}
+
+		throw new DhtException(MessageFormat.format(
+				DhtText.get().missingLongOffsetBase, chunkKey,
+				Long.valueOf(position)));
 	}
 
-	/** @return the repository that contains the chunk. */
-	public RepositoryKey getRepositoryKey() {
-		return chunkKey.getRepositoryKey();
+	static ChunkKey getNextFragment(ChunkMeta meta, ChunkKey chunkKey) {
+		int cnt = meta.getFragmentCount();
+		for (int i = 0; i < cnt - 1; i++) {
+			ChunkKey key = ChunkKey.fromString(meta.getFragment(i));
+			if (chunkKey.equals(key))
+				return ChunkKey.fromString(meta.getFragment(i + 1));
+		}
+		return null;
 	}
 
-	/** @return the chunk this information describes. */
-	public ChunkKey getChunkKey() {
-		return chunkKey;
-	}
-
-	/** @return the underlying message containing all data. */
-	public GitStore.ChunkInfo getData() {
-		return data;
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder b = new StringBuilder();
-		b.append("ChunkInfo:");
-		b.append(chunkKey);
-		b.append("\n");
-		b.append(data);
-		return b.toString();
+	private ChunkMetaUtil() {
+		// Static utilities only, do not create instances.
 	}
 }
