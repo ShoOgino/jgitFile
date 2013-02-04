@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, Shawn O. Pearce <spearce@spearce.org>
+ * Copyright (C) 2012, Robin Rosenberg <robin.rosenberg@dewire.com>
  * and other copyright owners as documented in the project's IP log.
  *
  * This program and the accompanying materials are made available
@@ -43,51 +43,24 @@
 
 package org.eclipse.jgit.util;
 
-import java.io.File;
-
+import org.eclipse.jgit.util.FS;
+import org.eclipse.jgit.util.FS.FSFactory;
+import org.eclipse.jgit.util.SystemReader;
 
 /**
- * FS implementaton for Java5
- *
- * @since 3.0
+ * A factory for creating FS instances on Java7
  */
-public class FS_POSIX_Java5 extends FS_POSIX {
-	/**
-	 * Constructor
-	 */
-	public FS_POSIX_Java5() {
-		super();
-	}
-
-	/**
-	 * Constructor
-	 *
-	 * @param src
-	 *            instance whose attributes to copy
-	 */
-	public FS_POSIX_Java5(FS src) {
-		super(src);
-	}
-
+public class Java7FSFactory extends FSFactory {
 	@Override
-	public FS newInstance() {
-		return new FS_POSIX_Java5(this);
-	}
-
-	public boolean supportsExecute() {
-		return false;
-	}
-
-	public boolean canExecute(final File f) {
-		return false;
-	}
-
-	public boolean setExecute(final File f, final boolean canExec) {
-		return false;
-	}
-
-	@Override
-	public boolean retryFailedLockFileCommit() {
-		return false;
+	public FS detect(Boolean cygwinUsed) {
+		if (SystemReader.getInstance().isWindows()) {
+			if (cygwinUsed == null)
+				cygwinUsed = Boolean.valueOf(FS_Win32_Cygwin.isCygwin());
+			if (cygwinUsed.booleanValue())
+				return new FS_Win32_Java7Cygwin();
+			else
+				return new FS_Win32_Java7();
+		} else
+			return new FS_POSIX_Java7();
 	}
 }
