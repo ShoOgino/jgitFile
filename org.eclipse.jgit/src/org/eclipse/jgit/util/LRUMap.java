@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, Matthias Sohn <matthias.sohn@sap.com>
+ * Copyright (C) 2018, Konrad Windszus <konrad_w@gmx.de>
  * and other copyright owners as documented in the project's IP log.
  *
  * This program and the accompanying materials are made available
@@ -40,65 +40,44 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.eclipse.jgit.pgm;
+package org.eclipse.jgit.util;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashMap;
 
-import org.eclipse.jgit.api.DescribeCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.RefNotFoundException;
-import org.eclipse.jgit.errors.InvalidPatternException;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.pgm.internal.CLIText;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.Option;
+/**
+ * Map with only up to n entries. If a new entry is added so that the map
+ * contains more than those n entries the least-recently used entry is removed
+ * from the map.
+ *
+ * @param <K>
+ *            the type of keys maintained by this map
+ * @param <V>
+ *            the type of mapped values
+ *
+ * @since 5.4
+ */
+public class LRUMap<K, V> extends LinkedHashMap<K, V> {
 
-@Command(common = true, usage = "usage_Describe")
-class Describe extends TextBuiltin {
+	private static final long serialVersionUID = 4329609127403759486L;
 
-	@Argument(index = 0, metaVar = "metaVar_treeish")
-	private ObjectId tree;
+	private final int limit;
 
-	@Option(name = "--long", usage = "usage_LongFormat")
-	private boolean longDesc;
+	/**
+	 * Constructs an empty map which may contain at most the given amount of
+	 * entries.
+	 *
+	 * @param initialCapacity
+	 *            the initial capacity
+	 * @param limit
+	 *            the number of entries the map should have at most
+	 */
+	public LRUMap(int initialCapacity, int limit) {
+		super(initialCapacity, 0.75f, true);
+		this.limit = limit;
+	}
 
-	@Option(name = "--tags", usage = "usage_UseTags")
-	private boolean useTags;
-
-	@Option(name = "--always", usage = "usage_AlwaysFallback")
-	private boolean always;
-
-	@Option(name = "--match", usage = "usage_Match", metaVar = "metaVar_pattern")
-	private List<String> patterns = new ArrayList<>();
-
-	/** {@inheritDoc} */
 	@Override
-	protected void run() {
-		try (Git git = new Git(db)) {
-			DescribeCommand cmd = git.describe();
-			if (tree != null) {
-				cmd.setTarget(tree);
-			}
-			cmd.setLong(longDesc);
-			cmd.setTags(useTags);
-			cmd.setAlways(always);
-			cmd.setMatch(patterns.toArray(new String[0]));
-			String result = null;
-			try {
-				result = cmd.call();
-			} catch (RefNotFoundException e) {
-				throw die(CLIText.get().noNamesFound, e);
-			}
-			if (result == null) {
-				throw die(CLIText.get().noNamesFound);
-			}
-
-			outw.println(result);
-		} catch (IOException | InvalidPatternException | GitAPIException e) {
-			throw die(e.getMessage(), e);
-		}
+	protected boolean removeEldestEntry(java.util.Map.Entry<K, V> eldest) {
+		return size() > limit;
 	}
 }
