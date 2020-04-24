@@ -7,6 +7,8 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+//TODO(ms): move to org.eclipse.jgit.ssh.jsch in 6.0
 package org.eclipse.jgit.transport;
 
 import static org.junit.Assert.assertTrue;
@@ -18,9 +20,9 @@ import java.nio.file.Files;
 import java.util.Arrays;
 
 import org.eclipse.jgit.errors.TransportException;
+import org.eclipse.jgit.junit.ssh.SshTestBase;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.transport.OpenSshConfig.Host;
-import org.eclipse.jgit.transport.ssh.SshTestBase;
 import org.eclipse.jgit.util.FS;
 import org.junit.experimental.theories.Theories;
 import org.junit.runner.RunWith;

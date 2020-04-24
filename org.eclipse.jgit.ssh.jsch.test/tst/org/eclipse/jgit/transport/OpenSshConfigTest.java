@@ -8,6 +8,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+//TODO(ms): move to org.eclipse.jgit.ssh.jsch in 6.0
 package org.eclipse.jgit.transport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;

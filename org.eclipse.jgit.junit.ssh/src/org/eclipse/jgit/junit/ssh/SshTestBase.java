@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-package org.eclipse.jgit.transport.ssh;
+package org.eclipse.jgit.junit.ssh;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
@@ -25,7 +25,6 @@ import java.util.Locale;
 
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.transport.CredentialItem;
-import org.eclipse.jgit.transport.JschConfigSessionFactory;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theory;
@@ -140,6 +139,10 @@ public abstract class SshTestBase extends SshTestHarness {
 				provider.getLog().size());
 	}
 
+	private boolean isJsch() {
+		return getSessionFactory().getType().equals("jsch");
+	}
+
 	@Test
 	public void testSshWithConfigEncryptedUnusedKeyInConfigFirst()
 			throws Exception {
@@ -148,7 +151,7 @@ public abstract class SshTestBase extends SshTestHarness {
 		// JschConfigSessionFactory)); gives in bazel a failure with "Never
 		// found parameters that satisfied method assumptions."
 		// In maven it's fine!?
-		if (getSessionFactory() instanceof JschConfigSessionFactory) {
+		if (isJsch()) {
 			return;
 		}
 		// Copy the encrypted test key from the bundle.
@@ -258,7 +261,7 @@ public abstract class SshTestBase extends SshTestHarness {
 				"IdentityFile " + privateKey1.getAbsolutePath());
 		List<LogEntry> messages = provider.getLog();
 		assertFalse("Expected user interaction", messages.isEmpty());
-		if (getSessionFactory() instanceof JschConfigSessionFactory) {
+		if (isJsch()) {
 			// JSch doesn't create a non-existing file.
 			assertEquals("Expected to be asked about the key", 1,
 					messages.size());
@@ -295,7 +298,7 @@ public abstract class SshTestBase extends SshTestHarness {
 				"User " + TEST_USER, //
 				"StrictHostKeyChecking accept-new", //
 				"IdentityFile " + privateKey1.getAbsolutePath());
-		if (getSessionFactory() instanceof JschConfigSessionFactory) {
+		if (isJsch()) {
 			// JSch doesn't create new files.
 			assertTrue("CredentialsProvider not called",
 					provider.getLog().isEmpty());
@@ -772,10 +775,9 @@ public abstract class SshTestBase extends SshTestHarness {
 	public void testSshKeys(String keyName) throws Exception {
 		// JSch fails on ECDSA 384/521 keys. Compare
 		// https://sourceforge.net/p/jsch/patches/10/
-		assumeTrue(!(getSessionFactory() instanceof JschConfigSessionFactory
-				&& (keyName.contains("ed25519")
-						|| keyName.startsWith("id_ecdsa_384")
-						|| keyName.startsWith("id_ecdsa_521"))));
+		assumeTrue(!(isJsch() && (keyName.contains("ed25519")
+				|| keyName.startsWith("id_ecdsa_384")
+				|| keyName.startsWith("id_ecdsa_521"))));
 		File cloned = new File(getTemporaryDirectory(), "cloned");
 		String keyFileName = keyName + "_key";
 		File privateKey = new File(sshDir, keyFileName);

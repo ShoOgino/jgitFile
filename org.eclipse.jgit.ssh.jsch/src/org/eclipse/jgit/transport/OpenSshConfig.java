@@ -8,6 +8,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+//TODO(ms): move to org.eclipse.jgit.ssh.jsch in 6.0
 package org.eclipse.jgit.transport;
 
 import static org.eclipse.jgit.internal.transport.ssh.OpenSshConfigFile.positive;
@@ -39,8 +40,8 @@ import com.jcraft.jsch.ConfigRepository;
  * <p>
  * This parser makes the critical options available to
  * {@link org.eclipse.jgit.transport.SshSessionFactory} via
- * {@link org.eclipse.jgit.transport.OpenSshConfig.Host} objects returned by
- * {@link #lookup(String)}, and implements a fully conforming
+ * {@link org.eclipse.jgit.transport.OpenSshConfig.Host} objects returned
+ * by {@link #lookup(String)}, and implements a fully conforming
  * {@link com.jcraft.jsch.ConfigRepository} providing
  * {@link com.jcraft.jsch.ConfigRepository.Config}s via
  * {@link #getConfig(String)}.

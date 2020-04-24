@@ -15,6 +15,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+//TODO(ms): move to org.eclipse.jgit.ssh.jsch in 6.0
 package org.eclipse.jgit.transport;
 
 import static java.util.stream.Collectors.joining;
@@ -37,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.eclipse.jgit.errors.TransportException;
-import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.internal.transport.jsch.JSchText;
 import org.eclipse.jgit.util.FS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,9 @@ import com.jcraft.jsch.Session;
  * {@link #configure(org.eclipse.jgit.transport.OpenSshConfig.Host, Session)} to
  * supply appropriate {@link com.jcraft.jsch.UserInfo} to the session.
  */
-public abstract class JschConfigSessionFactory extends SshSessionFactory {
+public class JschConfigSessionFactory extends SshSessionFactory {
+
+	private static final String JSCH = "jsch"; //$NON-NLS-1$
 
 	private static final Logger LOG = LoggerFactory
 			.getLogger(JschConfigSessionFactory.class);
@@ -137,7 +140,7 @@ public abstract class JschConfigSessionFactory extends SshSessionFactory {
 									user, pass, host, port, hc);
 						} catch (InterruptedException e1) {
 							throw new TransportException(
-									JGitText.get().transportSSHRetryInterrupt,
+									JSchText.get().transportSSHRetryInterrupt,
 									e1);
 						}
 					}
@@ -149,7 +152,8 @@ public abstract class JschConfigSessionFactory extends SshSessionFactory {
 		} catch (JSchException je) {
 			final Throwable c = je.getCause();
 			if (c instanceof UnknownHostException) {
-				throw new TransportException(uri, JGitText.get().unknownHost,
+				throw new TransportException(uri,
+						JSchText.get().unknownHost,
 						je);
 			}
 			if (c instanceof ConnectException) {
@@ -158,6 +162,11 @@ public abstract class JschConfigSessionFactory extends SshSessionFactory {
 			throw new TransportException(uri, je.getMessage(), je);
 		}
 
+	}
+
+	@Override
+	public String getType() {
+		return JSCH;
 	}
 
 	private static boolean isAuthenticationFailed(JSchException e) {
@@ -279,7 +288,7 @@ public abstract class JschConfigSessionFactory extends SshSessionFactory {
 		} catch (NullPointerException | IllegalAccessException
 				| IllegalArgumentException | InvocationTargetException
 				| NoSuchMethodException | SecurityException e) {
-			LOG.error(MessageFormat.format(JGitText.get().sshUserNameError,
+			LOG.error(MessageFormat.format(JSchText.get().sshUserNameError,
 					userName, session.getUserName()), e);
 		}
 	}
@@ -331,7 +340,9 @@ public abstract class JschConfigSessionFactory extends SshSessionFactory {
 	 * @param session
 	 *            session to configure
 	 */
-	protected abstract void configure(OpenSshConfig.Host hc, Session session);
+	protected void configure(OpenSshConfig.Host hc, Session session) {
+		// No additional configuration required.
+	}
 
 	/**
 	 * Obtain the JSch used to create new sessions.

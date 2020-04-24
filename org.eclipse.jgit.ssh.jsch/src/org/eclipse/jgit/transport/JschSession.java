@@ -13,6 +13,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+//TODO(ms): move to org.eclipse.jgit.ssh.jsch in 6.0
 package org.eclipse.jgit.transport;
 
 import java.io.BufferedOutputStream;
@@ -26,7 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jgit.errors.TransportException;
-import org.eclipse.jgit.internal.JGitText;
+import org.eclipse.jgit.internal.transport.jsch.JSchText;
 import org.eclipse.jgit.util.io.IsolatedOutputStream;
 
 import com.jcraft.jsch.Channel;
@@ -142,7 +143,7 @@ public class JschSession implements RemoteSession {
 				if (!channel.isConnected()) {
 					closeOutputStream();
 					throw new TransportException(uri,
-							JGitText.get().connectionFailed);
+							JSchText.get().connectionFailed);
 				}
 			} catch (JSchException e) {
 				closeOutputStream();
